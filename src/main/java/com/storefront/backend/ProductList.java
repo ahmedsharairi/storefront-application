@@ -1,5 +1,7 @@
 package com.storefront.backend;
 
+import com.storefront.backend.models.Product;
+
 import java.util.ArrayList;
 
 public class ProductList {
