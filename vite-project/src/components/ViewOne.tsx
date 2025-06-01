@@ -1,11 +1,48 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 function ViewOne() {
   const [id, setId] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [product, setProduct] = useState<any>(null);
+  const [auth, setAuth] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const verify = async () => {
+      try {
+        const token = localStorage.getItem("Token");
+        if (!token) {
+          navigate("/login");
+          return;
+        }
+
+        const response = await fetch("http://localhost:8080/api/auth/verify", {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain",
+          },
+          body: token,
+        });
+
+        if (!response.ok) {
+          throw new Error("Unable to verify token!");
+        }
+
+        const result = await response.json();
+        if (result) {
+          setAuth(true);
+        } else {
+          navigate("/login");
+        }
+      } catch (error) {
+        console.error("Error", error);
+        navigate("/login");
+      }
+    };
+    verify();
+  }, []);
 
   const handleSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
@@ -20,6 +57,9 @@ function ViewOne() {
     try {
       const response = await fetch(`http://localhost:8080/api/products/${id}`, {
         method: "GET",
+        headers: {
+          Authorization: "Bearer " + localStorage.getItem("Token"),
+        },
       });
 
       const data = await response.json();
@@ -37,50 +77,57 @@ function ViewOne() {
   };
 
   return (
-    <div className="d-flex flex-column align-items-center justify-content-center vh-100">
-      {error && <div className="alert alert-danger">{error}</div>}
-      {message && <div className="alert alert-success">{message}</div>}
-      <Link className="btn btn-primary mb-2" to="/">
-        Home
-      </Link>
-      <form onSubmit={handleSubmit} className="mb-4">
-        <div className="mb-3">
-          <label htmlFor="id" className="form-label">
-            Enter Product ID:
-          </label>
-          <input
-            type="text"
-            className="form-control"
-            id="id"
-            value={id}
-            onChange={(e) => setId(e.target.value)}
-          />
-        </div>
-        <button className="btn btn-primary" type="submit">
-          Submit
-        </button>
-      </form>
+    <div>
+      {auth && (
+        <div className="d-flex flex-column align-items-center justify-content-center vh-100">
+          {error && <div className="alert alert-danger">{error}</div>}
+          {message && <div className="alert alert-success">{message}</div>}
+          <Link className="btn btn-primary mb-2" to="/home">
+            Home
+          </Link>
+          <form onSubmit={handleSubmit} className="mb-4">
+            <div className="mb-3">
+              <label htmlFor="id" className="form-label">
+                Enter Product ID:
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                id="id"
+                value={id}
+                onChange={(e) => setId(e.target.value)}
+              />
+            </div>
+            <button className="btn btn-primary" type="submit">
+              Submit
+            </button>
+          </form>
 
-      {product && (
-        <div className="card p-4 shadow-lg rounded" style={{ width: "400px" }}>
-          <h5 className="text-center mb-3">Product Details</h5>
-          <div
-            className="border p-3 rounded bg-light"
-            style={{ minHeight: "100px" }}
-          >
-            <p>
-              <strong>Category:</strong> {product.category}
-            </p>
-            <p>
-              <strong>Name:</strong> {product.name}
-            </p>
-            <p>
-              <strong>Price:</strong> ${product.price}
-            </p>
-            <p>
-              <strong>Quantity:</strong> {product.qty}
-            </p>
-          </div>
+          {product && (
+            <div
+              className="card p-4 shadow-lg rounded"
+              style={{ width: "400px" }}
+            >
+              <h5 className="text-center mb-3">Product Details</h5>
+              <div
+                className="border p-3 rounded bg-light"
+                style={{ minHeight: "100px" }}
+              >
+                <p>
+                  <strong>Category:</strong> {product.category}
+                </p>
+                <p>
+                  <strong>Name:</strong> {product.name}
+                </p>
+                <p>
+                  <strong>Price:</strong> ${product.price}
+                </p>
+                <p>
+                  <strong>Quantity:</strong> {product.qty}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
